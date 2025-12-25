@@ -1,10 +1,17 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Input validation schema
+const RequestSchema = z.object({
+  query: z.string().min(1, "Query is required").max(2000, "Query too long"),
+  type: z.enum(['generate', 'suggest', 'chat']).default('chat'),
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -40,7 +47,37 @@ serve(async (req) => {
 
     console.log(`Authenticated request from user: ${user.id}`);
 
-    const { query, type } = await req.json();
+    // Parse and validate request body
+    let rawBody;
+    try {
+      rawBody = await req.json();
+    } catch (e) {
+      console.error('Invalid JSON in request body');
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const validation = RequestSchema.safeParse(rawBody);
+    if (!validation.success) {
+      console.error('Validation failed:', validation.error.errors);
+      return new Response(
+        JSON.stringify({ error: 'Invalid request parameters', details: validation.error.errors }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { query, type } = validation.data;
+    
+    // Sanitize query - remove potential injection patterns
+    const sanitizedQuery = query
+      .replace(/[<>]/g, '') // Remove HTML/XML tags
+      .trim()
+      .slice(0, 2000); // Hard limit
+
+    console.log(`Processing ${type} request with query length: ${sanitizedQuery.length}`);
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -98,7 +135,7 @@ serve(async (req) => {
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: query }
+          { role: "user", content: sanitizedQuery }
         ],
         stream: false,
       }),
