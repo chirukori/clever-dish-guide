@@ -19,33 +19,7 @@ serve(async (req) => {
   }
 
   try {
-    // Validate authentication
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      console.error('Missing authorization header');
-      return new Response(
-        JSON.stringify({ error: 'Authentication required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Verify JWT token
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      console.error('Authentication failed:', authError?.message);
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log(`Authenticated request from user: ${user.id}`);
+    console.log('Processing recipe generation request');
 
     // Parse and validate request body
     let rawBody;
