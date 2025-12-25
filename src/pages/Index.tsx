@@ -1,10 +1,8 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { HeroSection } from '@/components/HeroSection';
 import { RecipeModal } from '@/components/RecipeModal';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 interface Recipe {
@@ -23,17 +21,8 @@ interface Recipe {
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [generatedRecipe, setGeneratedRecipe] = useState<Recipe | null>(null);
-  const { user } = useAuth();
-  const navigate = useNavigate();
 
   const handleSearch = async (query: string) => {
-    // Check if user is logged in before calling the edge function
-    if (!user) {
-      toast.error('Please sign in to generate recipes');
-      navigate('/auth');
-      return;
-    }
-
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-recipe', {
