@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -12,10 +12,18 @@ export default function Auth() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,14 +31,16 @@ export default function Auth() {
 
     try {
       if (isSignUp) {
-        await signUp(email, password);
+        const { error } = await signUp(email, password, fullName);
+        if (error) throw error;
         toast({
           title: "Account created!",
-          description: "You can now sign in with your credentials.",
+          description: "Welcome to FlavorAI! You're now signed in.",
         });
-        setIsSignUp(false);
+        navigate('/');
       } else {
-        await signIn(email, password);
+        const { error } = await signIn(email, password);
+        if (error) throw error;
         toast({
           title: "Welcome back!",
           description: "You've successfully signed in.",
@@ -70,6 +80,19 @@ export default function Auth() {
 
             <div className="bg-card border border-border rounded-2xl p-6 shadow-lg">
               <form onSubmit={handleSubmit} className="space-y-4">
+                {isSignUp && (
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName">Full Name</Label>
+                    <Input
+                      id="fullName"
+                      type="text"
+                      placeholder="John Doe"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                    />
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input

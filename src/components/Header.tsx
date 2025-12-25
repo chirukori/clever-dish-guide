@@ -12,7 +12,7 @@ import {
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass-effect border-b border-border/50">
@@ -45,11 +45,17 @@ export function Header() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="gap-2">
                     <User className="h-4 w-4" />
-                    <span className="max-w-[100px] truncate">{user.email}</span>
+                    <span className="max-w-[120px] truncate">
+                      {profile?.full_name || user.email?.split('@')[0]}
+                    </span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={signOut} className="gap-2 cursor-pointer">
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="px-2 py-1.5 border-b border-border mb-1">
+                    <p className="text-sm font-medium">{profile?.full_name || 'User'}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                  </div>
+                  <DropdownMenuItem onClick={signOut} className="gap-2 cursor-pointer text-destructive">
                     <LogOut className="h-4 w-4" />
                     Sign Out
                   </DropdownMenuItem>
