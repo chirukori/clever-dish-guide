@@ -13,6 +13,46 @@ const RequestSchema = z.object({
   type: z.enum(['generate', 'suggest', 'chat']).default('chat'),
 });
 
+// Output validation schema for AI-generated recipes
+const IngredientSchema = z.object({
+  item: z.string().max(200),
+  amount: z.string().max(100),
+});
+
+const StepSchema = z.object({
+  step: z.number().int().positive(),
+  instruction: z.string().max(2000),
+  tip: z.string().max(500).optional(),
+});
+
+const RecipeSchema = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().max(1000).optional(),
+  prep_time: z.number().int().min(0).max(1440).optional(),
+  cook_time: z.number().int().min(0).max(1440).optional(),
+  servings: z.number().int().min(1).max(100).optional(),
+  difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
+  ingredients: z.array(IngredientSchema).max(100),
+  steps: z.array(StepSchema).max(100),
+  tags: z.array(z.string().max(50)).max(20).optional(),
+});
+
+const SuggestionSchema = z.object({
+  suggestions: z.array(z.object({
+    title: z.string().max(200),
+    description: z.string().max(500),
+    difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
+    time: z.string().max(50).optional(),
+  })).max(10),
+});
+
+// Sanitize text to remove control characters and potentially dangerous content
+function sanitizeText(text: string): string {
+  return text
+    .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
+    .trim();
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -166,18 +206,61 @@ serve(async (req) => {
       throw new Error("No content in AI response");
     }
 
-    // Try to parse JSON from the response
-    let parsedContent = content;
+    // Try to parse and validate JSON from the response
+    let parsedContent: unknown = content;
     if (type === "generate" || type === "suggest") {
       try {
         // Extract JSON from markdown code blocks if present
         const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
         const jsonStr = jsonMatch ? jsonMatch[1].trim() : content.trim();
-        parsedContent = JSON.parse(jsonStr);
+        const rawParsed = JSON.parse(jsonStr);
+        
+        // Validate and sanitize AI output based on type
+        if (type === "generate") {
+          const validated = RecipeSchema.parse(rawParsed);
+          // Sanitize all text fields
+          parsedContent = {
+            ...validated,
+            title: sanitizeText(validated.title),
+            description: validated.description ? sanitizeText(validated.description) : undefined,
+            ingredients: validated.ingredients.map(ing => ({
+              item: sanitizeText(ing.item),
+              amount: sanitizeText(ing.amount),
+            })),
+            steps: validated.steps.map(step => ({
+              ...step,
+              instruction: sanitizeText(step.instruction),
+              tip: step.tip ? sanitizeText(step.tip) : undefined,
+            })),
+            tags: validated.tags?.map(tag => sanitizeText(tag)),
+          };
+          console.log('Recipe validated and sanitized successfully');
+        } else if (type === "suggest") {
+          const validated = SuggestionSchema.parse(rawParsed);
+          // Sanitize suggestions
+          parsedContent = {
+            suggestions: validated.suggestions.map(s => ({
+              ...s,
+              title: sanitizeText(s.title),
+              description: sanitizeText(s.description),
+            })),
+          };
+          console.log('Suggestions validated and sanitized successfully');
+        }
       } catch (e) {
+        if (e instanceof z.ZodError) {
+          console.error("AI output validation failed:", e.errors);
+          return new Response(
+            JSON.stringify({ error: "AI generated an invalid recipe format. Please try again." }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
         console.error("Failed to parse JSON:", e);
-        parsedContent = { raw: content };
+        parsedContent = { raw: sanitizeText(content) };
       }
+    } else {
+      // For chat responses, sanitize the text
+      parsedContent = sanitizeText(content);
     }
 
     return new Response(JSON.stringify({ result: parsedContent }), {
