@@ -6,7 +6,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
-import { normalizeIngredients, Recipe } from '@/utils/recipeUtils';
+import { normalizeIngredients, normalizeSteps, Recipe } from '@/utils/recipeUtils';
+
+// Image overrides for specific recipes
+const RECIPE_IMAGES: Record<string, string> = {
+  'Masala Dosa': '/masala-dosa.png',
+  'Sambar': '/sambar.png'
+};
 
 export default function Explore() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -28,7 +34,9 @@ export default function Explore() {
       const normalizedRecipes = data.map((recipe: any) => ({
         ...recipe,
         ingredients: normalizeIngredients(recipe.ingredients),
-        steps: typeof recipe.steps === 'string' ? JSON.parse(recipe.steps) : recipe.steps
+        steps: normalizeSteps(recipe.steps),
+        // Use local image if available, otherwise fallback to DB image
+        image_url: RECIPE_IMAGES[recipe.title] || recipe.image_url
       }));
       setRecipes(normalizedRecipes as Recipe[]);
     }

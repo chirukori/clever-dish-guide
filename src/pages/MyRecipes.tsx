@@ -8,7 +8,7 @@ import { Plus, ChefHat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 
-import { normalizeIngredients, Recipe } from '@/utils/recipeUtils';
+import { normalizeIngredients, normalizeSteps, Recipe } from '@/utils/recipeUtils';
 
 export default function MyRecipes() {
   const { user } = useAuth();
@@ -35,7 +35,7 @@ export default function MyRecipes() {
       const normalizedRecipes = data.map((recipe: any) => ({
         ...recipe,
         ingredients: normalizeIngredients(recipe.ingredients),
-        steps: typeof recipe.steps === 'string' ? JSON.parse(recipe.steps) : recipe.steps
+        steps: normalizeSteps(recipe.steps)
       }));
       setRecipes(normalizedRecipes as Recipe[]);
     }
