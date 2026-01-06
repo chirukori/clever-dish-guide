@@ -3,29 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-interface Ingredient {
-  item: string;
-  amount: string;
-}
-
-interface Step {
-  step: number;
-  instruction: string;
-  tip?: string;
-}
-
-interface Recipe {
-  title: string;
-  description?: string;
-  prep_time?: number;
-  cook_time?: number;
-  servings?: number;
-  difficulty?: 'easy' | 'medium' | 'hard';
-  ingredients?: Ingredient[];
-  steps?: Step[];
-  tags?: string[];
-  is_ai_generated?: boolean;
-}
+import { Ingredient, Recipe } from '@/utils/recipeUtils';
 
 interface RecipeModalProps {
   recipe: Recipe | null;
@@ -68,7 +46,7 @@ export function RecipeModal({ recipe, onClose }: RecipeModalProps) {
         <ScrollArea className="h-[calc(90vh-80px)]">
           <div className="p-6">
             <h2 className="font-display text-2xl md:text-3xl font-bold mb-3">{recipe.title}</h2>
-            
+
             {recipe.description && (
               <p className="text-muted-foreground mb-4">{recipe.description}</p>
             )}

@@ -1,18 +1,7 @@
 import { Clock, Users, ChefHat, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
-interface Recipe {
-  id?: string;
-  title: string;
-  description?: string;
-  image_url?: string;
-  prep_time?: number;
-  cook_time?: number;
-  servings?: number;
-  difficulty?: 'easy' | 'medium' | 'hard';
-  tags?: string[];
-  is_ai_generated?: boolean;
-}
+import { Recipe } from '@/utils/recipeUtils';
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -42,7 +31,7 @@ export function RecipeCard({ recipe, onClick }: RecipeCardProps) {
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        
+
         {recipe.is_ai_generated && (
           <div className="absolute top-3 left-3">
             <Badge className="bg-primary/90 text-primary-foreground gap-1">
@@ -65,7 +54,7 @@ export function RecipeCard({ recipe, onClick }: RecipeCardProps) {
         <h3 className="font-display text-lg font-semibold mb-2 line-clamp-1 group-hover:text-primary transition-colors">
           {recipe.title}
         </h3>
-        
+
         {recipe.description && (
           <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
             {recipe.description}

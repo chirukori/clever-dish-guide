@@ -8,20 +8,7 @@ import { Plus, ChefHat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 
-interface Recipe {
-  id: string;
-  title: string;
-  description?: string;
-  image_url?: string;
-  prep_time?: number;
-  cook_time?: number;
-  servings?: number;
-  difficulty?: 'easy' | 'medium' | 'hard';
-  ingredients?: any;
-  steps?: any;
-  tags?: string[];
-  is_ai_generated?: boolean;
-}
+import { normalizeIngredients, Recipe } from '@/utils/recipeUtils';
 
 export default function MyRecipes() {
   const { user } = useAuth();
@@ -45,7 +32,12 @@ export default function MyRecipes() {
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      setRecipes(data as unknown as Recipe[]);
+      const normalizedRecipes = data.map((recipe: any) => ({
+        ...recipe,
+        ingredients: normalizeIngredients(recipe.ingredients),
+        steps: typeof recipe.steps === 'string' ? JSON.parse(recipe.steps) : recipe.steps
+      }));
+      setRecipes(normalizedRecipes as Recipe[]);
     }
     setLoading(false);
   };
